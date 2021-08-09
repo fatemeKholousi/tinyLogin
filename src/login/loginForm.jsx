@@ -1,71 +1,138 @@
-import React, { useState, useEffect } from 'react'
-import { useHistory } from "react-router-dom";
+import React from "react";
 import { LoginLogic } from './loginLogic';
-
-import { userSchema } from '../validation/UserValidation';
-import { useFormik } from 'formik';
-import * as yup from 'yup';
-
+import { Formik } from "formik";
+import * as Yup from "yup";
 import "../App.css"
+import * as EmailValidator from "email-validator";
 
-function LoginForm() {
-    const history = useHistory()
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
 
-    const handleLogin = (e) => {
-        e.preventDefault();
-        if (email, password) {
-            LoginLogic(email, password)
-                .then((res) => {
-                    localStorage.setItem("token", res.data.access_token);
-                    localStorage.setItem("expireTime", res.data.expires_in);
-                    console.log(res.data)
-                    e.preventDefault();
-                    alert("با موفقیت وارد شدید")
-                    history.push('/simplepage')
-                })
-                .catch(err => {
-                    console.log(err)
-                    alert("مشکلی هنگام ورود رخ داده است")
-                })
+const LoginForm = (props) =>
+
+(<Formik
+    initialValues={{ email: "", password: "" }}
+    onSubmit={(values, { setSubmitting }) => {
+        setTimeout(() => {
+            if (values.email, values.password) {
+                LoginLogic(values.email, values.password)
+                    .then((res) => {
+                        localStorage.setItem("token", res.data.access_token);
+                        localStorage.setItem("expireTime", res.data.expires_in);
+                        props.history.replace('simplepage')
+                        console.log("با موفقیت وارد شدید")
+                    })
+                    .catch(err => {
+                        console.log(err)
+                        alert("مشکلی هنگام ورود رخ داده است")
+                    })
+            }
+
+            // console.log("Logging in", values);
+
+            setSubmitting(false);
+        }, 500);
+    }}
+    //********Handling validation messages yourself*******/
+    validate={values => {
+        let errors = {};
+        if (!values.email) {
+            errors.email = "مجاز به خالی گذاشتن این فیلد نیستید";
+        } else if (!EmailValidator.validate(values.email)) {
+            errors.email = "آدرس ایمیل معتبر نیست";
         }
-    }
 
-    const handleChange = (e) => {
-        if (e.target.name === "email") {
-            setEmail(e.target.value);
-        } else {
-            setPassword(e.target.value);
+        const passwordRegex = /(?=.*[0-9])/;
+        if (!values.password) {
+            errors.password = "مجاز به خالی گذاشتن این فیلد نیستید";
+
+
+        } else if (values.password.length < 8) {
+            errors.password = "کلمه عبور حداقل شامل 8 حرف می باشد";
+        } else if (!passwordRegex.test(values.password)) {
+            errors.password = "کلمه عبور شامل اعداد می باشد";
         }
-    };
 
-    return (
-        <div className="login--center">
-            <h2>ورود به پنل مدیریت</h2>
+        return errors;
+    }}
+    //********Using Yum for validation********/
 
-            <form className="login--form">
-                <div className="text--field">
-                    <input name="email" value={email} onChange={handleChange} />
-                    <span></span>
-                    <label htmlFor="email">نام کاربری</label>
-                </div>
+    validationSchema={Yup.object().shape({
+        email: Yup.string()
+            .email()
+            .required(),
+        password: Yup.string()
+            .required()
+            .min(8)
+            .matches(/(?=.*[0-9])/)
+    })}
+>
+    {props => {
+        const {
+            values,
+            touched,
+            errors,
+            isSubmitting,
+            handleChange,
+            handleBlur,
+            handleSubmit
+        } = props;
+        return (
+            <div className="login--center">
+                <h2>ورود به پنل مدیریت</h2>
+                <form onSubmit={handleSubmit} className="login--form">
 
-                <div className="text--field">
-                    <input type="password" value={password} onChange={handleChange} />
-                    <span></span>
-                    <label >کلمه عبور</label>
-                </div>
+                    <div className="text--field" >
+                        <input name="email" type="text" value={values.email} onChange={handleChange}
+                            onBlur={handleBlur} className={errors.email && touched.email && "error"}
+                        />
+                        <span></span>
+                        <label htmlFor="email">نام کاربری</label>
+                        {errors.email && touched.email && (
+                            <div className="input-feedback">{errors.email}</div>
+                        )}
+                    </div>
 
 
-                <button className="login--button" onClick={handleLogin}>ورود</button>
+                    <div className="text--field">
+                        <input type="password" value={values.password} onChange={handleChange}
+                            name="password" onBlur={handleBlur} className={errors.password && touched.password && "error"} />
+                        <span></span>
+                        <label >کلمه عبور</label>
+                        {errors.password && touched.password && (
+                            <div className="input-feedback">{errors.password}</div>
+                        )}
+                    </div>
 
 
 
+                    <button className="login--button" type="submit" disabled={isSubmitting} >ورود</button>
 
-            </form>
-        </div>
-    )
-}
 
-export default LoginForm
+                </form>
+            </div>
+            // -----------------
+            /* <div >
+                      
+            
+                        <form >
+                            
+            
+                         
+            
+                            
+            
+            
+            
+            
+                        </form>
+                    </div> */
+
+
+
+        );
+    }}
+</Formik>
+)
+
+    ;
+
+export default LoginForm;
